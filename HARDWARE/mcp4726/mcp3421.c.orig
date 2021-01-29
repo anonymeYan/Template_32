@@ -1,0 +1,237 @@
+#include "mcp3421.h"
+#include "delay.h"
+#include "sys.h"
+
+
+
+void MCP3421_Init(void)
+{
+	IIC2_Init();
+}
+
+
+
+//读电流16位
+u16 READ_I()
+{
+	u16 an=0;
+	an=0;
+	Config_MCP3421(0xd0);
+	delay_ms(1);
+	an=READ_MCP3421(0xd1);
+	return an;
+}
+
+
+//读电流18位
+u32 READ_I_18Bits()
+{
+	u32 an=0;
+	an=0;
+	Config_MCP3421(0xd0);
+	delay_ms(1);
+	an=READ_MCP3421_18Bits(0xd1);
+	return an;
+}
+
+
+
+//配置MCP3421    18位
+void Config_MCP3421_18Bits(u8 daddr)
+{
+    IIC_Start1();
+    IIC_Send_Byte1(daddr) ;//写地址
+    IIC_Wait_Ack1() ; 
+    IIC_Send_Byte1(0x8c) ;//数据
+    IIC_Wait_Ack1() ;
+    IIC_Stop1();
+}
+
+
+
+//配置MCP3421   16位
+void Config_MCP3421(u8 daddr)
+{
+    IIC_Start1();
+    IIC_Send_Byte1(daddr) ;//写地址
+    IIC_Wait_Ack1() ; 
+    IIC_Send_Byte1(0x88) ;//数据
+    IIC_Wait_Ack1() ;
+    IIC_Stop1();
+}
+
+
+
+
+ 
+u16 READ_MCP3421(u8 daddr)
+{
+  u16 buff=0;
+	u8 cofig=0;
+	IIC_Start1();
+	IIC_Send_Byte1(daddr) ;//读地址
+	IIC_Wait_Ack1() ; 
+	buff = IIC_Read_Byte1(1)<<8;
+//	IIC_Ack1(); //
+	buff+= IIC_Read_Byte1(1);//读出的转换数据存入16位变量中
+//	IIC_Ack1(); //
+	cofig=IIC_Read_Byte1(0);
+	IIC_Wait_Ack1(); //
+	IIC_Stop1();
+	return buff;
+}
+
+
+
+u32 READ_MCP3421_18Bits(u8 daddr)
+{
+  u32 data=0,buff=0,config=0;
+	IIC_Start1();
+	IIC_Send_Byte1(daddr) ;//读地址
+	IIC_Wait_Ack1() ; 
+	buff = IIC_Read_Byte1(1);
+	data=(data<<8)|buff;
+//	IIC_Ack1(); //
+	buff = IIC_Read_Byte1(1);
+	data=(data<<8)|buff;
+//	IIC_Ack1(); //
+	buff = IIC_Read_Byte1(1);
+	data=(data<<8)|buff;
+	config=IIC_Read_Byte1(0);	
+	IIC_Wait_Ack1(); //
+	IIC_Stop1();
+  data&=0x03ffff;
+	return data;
+}
+
+
+
+
+void IIC2_Init(void)
+{					     
+	GPIO_InitTypeDef GPIO_InitStructure;
+	RCC_APB2PeriphClockCmd(	RCC_APB2Periph_GPIOB, ENABLE );	//使能GPIOB时钟
+	   
+	GPIO_InitStructure.GPIO_Pin =GPIO_Pin_10|GPIO_Pin_11;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP ;   //推挽输出
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOB, &GPIO_InitStructure);
+	GPIO_SetBits(GPIOB,GPIO_Pin_10|GPIO_Pin_11); 	//PB10,PB11 输出高
+}
+
+
+
+
+void IIC_Start1(void)
+{
+	SDA_OUT1();     //sda线输出
+	IIC_SDA1=1;	  	  
+	IIC_SCL1=1;
+	delay_us(4);
+ 	IIC_SDA1=0;//START:when CLK is high,DATA change form high to low 
+	delay_us(4);
+	IIC_SCL1=0;//钳住I2C总线，准备发送或接收数据 
+}	  
+//产生IIC停止信号
+void IIC_Stop1(void)
+{
+	SDA_OUT1();//sda线输出
+	IIC_SCL1=0;
+	IIC_SDA1=0;//STOP:when CLK is high DATA change form low to high
+ 	delay_us(4);
+	IIC_SCL1=1; 
+	IIC_SDA1=1;//发送I2C总线结束信号
+	delay_us(4);							   	
+}
+//等待应答信号到来
+//返回值：1，接收应答失败
+//        0，接收应答成功
+u8 IIC_Wait_Ack1(void)
+{
+	u8 ucErrTime=0;
+	SDA_IN1();      //SDA设置为输入  
+	IIC_SDA1=1;delay_us(1);	   
+	IIC_SCL1=1;delay_us(1);	 
+	while(READ_SDA1)
+	{
+		ucErrTime++;
+		if(ucErrTime>250)
+		{
+			IIC_Stop1();
+			return 1;
+		}
+	}
+	IIC_SCL1=0;//时钟输出0 	   
+	return 0;  
+} 
+//产生ACK应答
+void IIC_Ack1(void)
+{
+	IIC_SCL1=0;
+	SDA_OUT1();
+	IIC_SDA1=0;
+	delay_us(2);
+	IIC_SCL1=1;
+	delay_us(2);
+	IIC_SCL1=0;
+}
+//不产生ACK应答		    
+void IIC_NAck1(void)
+{
+	IIC_SCL1=0;
+	SDA_OUT1();
+	IIC_SDA1=1;
+	delay_us(2);
+	IIC_SCL1=1;
+	delay_us(2);
+	IIC_SCL1=0;
+}					 				     
+//IIC发送一个字节
+//返回从机有无应答
+//1，有应答
+//0，无应答			  
+void IIC_Send_Byte1(u8 txd)
+{                        
+    u8 t;   
+	SDA_OUT1(); 	    
+    IIC_SCL1=0;//拉低时钟开始数据传输
+    for(t=0;t<8;t++)
+    {              
+        //IIC_SDA=(txd&0x80)>>7;
+		if((txd&0x80)>>7)
+			IIC_SDA1=1;
+		else
+			IIC_SDA1=0;
+		txd<<=1; 	  
+		delay_us(2);   //对TEA5767这三个延时都是必须的
+		IIC_SCL1=1;
+		delay_us(2); 
+		IIC_SCL1=0;	
+		delay_us(2);
+    }	 
+} 	    
+//读1个字节，ack=1时，发送ACK，ack=0，发送nACK   
+u8 IIC_Read_Byte1(unsigned char ack)
+{
+	unsigned char i,receive=0;
+	SDA_IN1();//SDA设置为输入
+    for(i=0;i<8;i++ )
+	{
+        IIC_SCL1=0; 
+        delay_us(2);
+		IIC_SCL1=1;
+        receive<<=1;
+        if(READ_SDA1)receive++;   
+		delay_us(1); 
+    }					 
+    if (!ack)
+        IIC_NAck1();//发送nACK
+    else
+        IIC_Ack1(); //发送ACK   
+    return receive;
+}
+
+
+
+
+

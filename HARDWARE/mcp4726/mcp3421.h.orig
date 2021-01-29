@@ -1,0 +1,37 @@
+#include "sys.h"
+
+#define SDA_IN1()  {GPIOB->CRH&=0XFFFF0FFF;GPIOB->CRH|=(u32)8<<12;}
+#define SDA_OUT1() {GPIOB->CRH&=0XFFFF0FFF;GPIOB->CRH|=(u32)3<<12;}
+
+#define IIC_SCL1    PBout(10) //SCL
+#define IIC_SDA1    PBout(11) //SDA	 
+#define READ_SDA1   PBin(11)  //ÊäÈëSDA 
+
+
+void MCP3421_Init(void);
+
+void Config_MCP3421(u8 daddr);
+u16 READ_MCP3421(u8 daddr);
+u16 READ_I(void);
+
+void Config_MCP3421_18Bits(u8 daddr);
+u32 READ_MCP3421_18Bits(u8 daddr);
+u32 READ_I_18Bits(void);
+
+
+void IIC2_Init(void);
+void IIC_Start1(void);               
+void IIC_Stop1(void);                
+void IIC_Send_Byte1(u8 txd);
+u8 IIC_Read_Byte1(unsigned char ack);
+u8 IIC_Wait_Ack1(void);              
+void IIC_Ack1(void);                 
+void IIC_NAck1(void);                
+void IIC_Write_One_Byte1(u8 daddr,u8 addr,u8 data);
+u8 IIC_Read_One_Byte1(u8 daddr,u8 addr);
+
+
+
+
+
+

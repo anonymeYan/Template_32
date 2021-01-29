@@ -1,0 +1,26 @@
+#ifndef __LED_H
+#define __LED_H
+#include "sys.h"
+
+
+#define MCU_Run_LED  PCout(10)      // 运行指示灯
+
+#define KM1 PBout(0)
+#define KM2  PBout(1)
+#define KM3  PCout(7)
+#define TSafe PCin(0)  //过温
+
+
+void Start_Init(void);//初始化
+
+typedef struct
+{
+    void (*LED_Init)(void);
+    void (*LED_ON)(void);
+    void (*LED_OFF)(void);
+    void (*LED_Flip)(void);
+} LED_t;
+
+extern LED_t Run_LED;
+
+#endif

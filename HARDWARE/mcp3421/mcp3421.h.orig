@@ -1,0 +1,30 @@
+#ifndef __MCP3421_H
+#define __MCP3421_H
+#include "delay.h"
+#include "sys.h"
+#include "myiic.h"
+
+typedef struct
+{
+  void (*MCP3421_Init)(void);
+    void (*MCP3421_Config)(u8 daddr);
+    void (*MCP3421_Config_18Bits)(u8 daddr);
+    u16 (*MCP3421_READ)(u8 daddr);
+    u32 (*MCP3421_READ_18Bits)(u8 daddr);
+} MCP3421_t;
+
+void MCP3421_Init(void);
+void MCP3421_Config(u8 daddr);
+void MCP3421_Config_18Bits(u8 daddr);
+u16 MCP3421_READ(u8 daddr);
+u32 MCP3421_READ_18Bits(u8 daddr);
+
+//u16 READ_I(void);
+//u16 READ_V(void);
+//u32 READ_I_18Bits(void);
+//u32 READ_V_18Bits(void);
+
+
+#endif
+
+
